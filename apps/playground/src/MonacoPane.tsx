@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
-import type { MermaidWysiwygEditor } from '@mermaid-wysiwyg/core'
-import { bindMonaco, registerMermaidLanguage } from '@mermaid-wysiwyg/monaco'
+import type { MermaidWysiwygEditor } from '@inkeep/mermaid-wysiwyg-core'
+import { bindMonaco, registerMermaidLanguage } from '@inkeep/mermaid-wysiwyg-monaco'
 
 /**
- * Monaco pane using @mermaid-wysiwyg/monaco. The app owns the Monaco setup
+ * Monaco pane using @inkeep/mermaid-wysiwyg-monaco. The app owns the Monaco setup
  * (lazy import, worker env, theme, create options); the package owns the sync.
  */
 export function MonacoPane({ editor }: { editor: MermaidWysiwygEditor }) {

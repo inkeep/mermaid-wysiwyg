@@ -1,5 +1,5 @@
 {
-  "name": "@mermaid-wysiwyg/codemirror",
+  "name": "@inkeep/mermaid-wysiwyg-codemirror",
   "version": "0.1.0",
   "description": "CodeMirror 6 binding for mermaid-wysiwyg: two-way code sync, entity highlight decorations, shared undo authority.",
   "type": "module",
@@ -14,7 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@mermaid-wysiwyg/core": "workspace:*"
+    "@inkeep/mermaid-wysiwyg-core": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.3",
@@ -32,6 +32,7 @@
     "src"
   ],
   "publishConfig": {
+    "access": "public",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {

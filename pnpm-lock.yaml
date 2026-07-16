@@ -29,21 +29,21 @@ importers:
       '@codemirror/view':
         specifier: ^6.34.1
         version: 6.43.6
+      '@inkeep/mermaid-wysiwyg-codemirror':
+        specifier: workspace:*
+        version: link:../../packages/codemirror
+      '@inkeep/mermaid-wysiwyg-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@inkeep/mermaid-wysiwyg-dom':
+        specifier: workspace:*
+        version: link:../../packages/dom
       '@lezer/highlight':
         specifier: ^1.2.1
         version: 1.2.3
       '@mermaid-js/mermaid-zenuml':
         specifier: ^0.2.0
         version: 0.2.3(@babel/core@7.29.7)(@babel/template@7.29.7)(@types/react@18.3.31)(mermaid@11.16.0)(tailwindcss@4.3.2)
-      '@mermaid-wysiwyg/codemirror':
-        specifier: workspace:*
-        version: link:../../packages/codemirror
-      '@mermaid-wysiwyg/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@mermaid-wysiwyg/dom':
-        specifier: workspace:*
-        version: link:../../packages/dom
       mermaid:
         specifier: ^11.6.0
         version: 11.16.0
@@ -69,27 +69,27 @@ importers:
       '@codemirror/view':
         specifier: ^6.34.1
         version: 6.43.6
+      '@inkeep/mermaid-wysiwyg-codemirror':
+        specifier: workspace:*
+        version: link:../../packages/codemirror
+      '@inkeep/mermaid-wysiwyg-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@inkeep/mermaid-wysiwyg-dom':
+        specifier: workspace:*
+        version: link:../../packages/dom
+      '@inkeep/mermaid-wysiwyg-monaco':
+        specifier: workspace:*
+        version: link:../../packages/monaco
+      '@inkeep/mermaid-wysiwyg-react':
+        specifier: workspace:*
+        version: link:../../packages/react
       '@lezer/highlight':
         specifier: ^1.2.1
         version: 1.2.3
       '@mermaid-js/mermaid-zenuml':
         specifier: ^0.2.0
         version: 0.2.3(@babel/core@7.29.7)(@babel/template@7.29.7)(@types/react@18.3.31)(mermaid@11.16.0)(tailwindcss@4.3.2)
-      '@mermaid-wysiwyg/codemirror':
-        specifier: workspace:*
-        version: link:../../packages/codemirror
-      '@mermaid-wysiwyg/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@mermaid-wysiwyg/dom':
-        specifier: workspace:*
-        version: link:../../packages/dom
-      '@mermaid-wysiwyg/monaco':
-        specifier: workspace:*
-        version: link:../../packages/monaco
-      '@mermaid-wysiwyg/react':
-        specifier: workspace:*
-        version: link:../../packages/react
       mermaid:
         specifier: ^11.6.0
         version: 11.16.0
@@ -121,7 +121,7 @@ importers:
 
   packages/codemirror:
     dependencies:
-      '@mermaid-wysiwyg/core':
+      '@inkeep/mermaid-wysiwyg-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -161,7 +161,7 @@ importers:
 
   packages/dom:
     dependencies:
-      '@mermaid-wysiwyg/core':
+      '@inkeep/mermaid-wysiwyg-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -171,7 +171,7 @@ importers:
 
   packages/monaco:
     dependencies:
-      '@mermaid-wysiwyg/core':
+      '@inkeep/mermaid-wysiwyg-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -187,10 +187,10 @@ importers:
 
   packages/react:
     dependencies:
-      '@mermaid-wysiwyg/core':
+      '@inkeep/mermaid-wysiwyg-core':
         specifier: workspace:*
         version: link:../core
-      '@mermaid-wysiwyg/dom':
+      '@inkeep/mermaid-wysiwyg-dom':
         specifier: workspace:*
         version: link:../dom
     devDependencies:

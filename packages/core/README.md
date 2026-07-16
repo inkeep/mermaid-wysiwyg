@@ -1,4 +1,4 @@
-# @mermaid-wysiwyg/core
+# @inkeep/mermaid-wysiwyg-core
 
 Headless bidirectional editing engine for [Mermaid](https://mermaid.js.org) diagrams.
 Text is the source of truth: a lossless CST and per-type semantic graphs turn visual
@@ -6,7 +6,7 @@ operations (rename, connect, reorder, restyle) into **minimal text edits** again
 actual Mermaid source. Zero DOM dependencies.
 
 ```ts
-import { MermaidWysiwygEditor } from '@mermaid-wysiwyg/core'
+import { MermaidWysiwygEditor } from '@inkeep/mermaid-wysiwyg-core'
 
 const editor = new MermaidWysiwygEditor({ code: 'flowchart TD\n  A --> B' })
 editor.dispatch({ type: 'renameNode', id: 'A', label: 'Start' })
@@ -17,12 +17,12 @@ editor.undo()
 ## Bring your own code editor
 
 `bindTextPane` syncs the engine with any code editor behind a five-method adapter.
-For CodeMirror use [`@mermaid-wysiwyg/codemirror`](https://npmjs.com/package/@mermaid-wysiwyg/codemirror),
-for Monaco use [`@mermaid-wysiwyg/monaco`](https://npmjs.com/package/@mermaid-wysiwyg/monaco);
+For CodeMirror use [`@inkeep/mermaid-wysiwyg-codemirror`](https://npmjs.com/package/@inkeep/mermaid-wysiwyg-codemirror),
+for Monaco use [`@inkeep/mermaid-wysiwyg-monaco`](https://npmjs.com/package/@inkeep/mermaid-wysiwyg-monaco);
 both are implementations of this contract. For anything else, implement the adapter:
 
 ```ts
-import { bindTextPane } from '@mermaid-wysiwyg/core'
+import { bindTextPane } from '@inkeep/mermaid-wysiwyg-core'
 
 const binding = bindTextPane(editor, {
   getText: () => /* current document text */,
@@ -43,5 +43,5 @@ selection syncs both ways, and undo/redo shares the canvas history stack. The
 notify methods no-op while the binding is applying engine edits, so there is no
 echo loop to guard against.
 
-Pairs with [`@mermaid-wysiwyg/dom`](https://npmjs.com/package/@mermaid-wysiwyg/dom)
+Pairs with [`@inkeep/mermaid-wysiwyg-dom`](https://npmjs.com/package/@inkeep/mermaid-wysiwyg-dom)
 (interactive canvas). Docs: [github.com/inkeep/mermaid-wysiwyg](https://github.com/inkeep/mermaid-wysiwyg)

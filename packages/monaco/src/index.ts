@@ -10,7 +10,7 @@
  * test suite).
  */
 
-import { bindTextPane, type MermaidWysiwygEditor, type TextPaneBinding } from '@mermaid-wysiwyg/core'
+import { bindTextPane, type MermaidWysiwygEditor, type TextPaneBinding } from '@inkeep/mermaid-wysiwyg-core'
 
 export { mermaidMonarchTokens, registerMermaidLanguage, type MonacoNamespaceLike } from './language'
 

@@ -1,5 +1,5 @@
 export interface Sample {
-  /** must match a DiagramTypeInfo id from @mermaid-wysiwyg/core */
+  /** must match a DiagramTypeInfo id from @inkeep/mermaid-wysiwyg-core */
   typeId: string
   title: string
   code: string

@@ -27,13 +27,13 @@ get a one-line diff.
 ## Quick start
 
 ```bash
-npm i @mermaid-wysiwyg/core @mermaid-wysiwyg/dom mermaid
+npm i @inkeep/mermaid-wysiwyg-core @inkeep/mermaid-wysiwyg-dom mermaid
 ```
 
 ```ts
 import mermaid from 'mermaid'
-import { MermaidWysiwygEditor } from '@mermaid-wysiwyg/core'
-import { MermaidCanvasView } from '@mermaid-wysiwyg/dom'
+import { MermaidWysiwygEditor } from '@inkeep/mermaid-wysiwyg-core'
+import { MermaidCanvasView } from '@inkeep/mermaid-wysiwyg-dom'
 
 const editor = new MermaidWysiwygEditor({
   code: 'flowchart TD\n  A[Start] --> B{OK?}\n  B -->|yes| C[Ship]',
@@ -81,11 +81,11 @@ Every type renders, round-trips losslessly, and syncs selection between code and
 
 | Package | Purpose |
 |---|---|
-| `@mermaid-wysiwyg/core` | Headless engine: lossless CST, semantic graphs, ops → minimal text edits, unified history. Zero DOM deps |
-| `@mermaid-wysiwyg/dom` | Interactive canvas: renders through your `mermaid` instance, correlates SVG ⇄ graph, all gestures |
-| `@mermaid-wysiwyg/codemirror` | CodeMirror 6 pane: two-way sync, entity decorations, mermaid syntax highlighting, shared undo |
-| `@mermaid-wysiwyg/monaco` | Monaco binding for an editor instance you own; zero monaco dependency of its own |
-| `@mermaid-wysiwyg/react` | React bindings: `<MermaidWysiwyg code onCodeChange />` drop-in component plus `useMermaidEditor` hook |
+| `@inkeep/mermaid-wysiwyg-core` | Headless engine: lossless CST, semantic graphs, ops → minimal text edits, unified history. Zero DOM deps |
+| `@inkeep/mermaid-wysiwyg-dom` | Interactive canvas: renders through your `mermaid` instance, correlates SVG ⇄ graph, all gestures |
+| `@inkeep/mermaid-wysiwyg-codemirror` | CodeMirror 6 pane: two-way sync, entity decorations, mermaid syntax highlighting, shared undo |
+| `@inkeep/mermaid-wysiwyg-monaco` | Monaco binding for an editor instance you own; zero monaco dependency of its own |
+| `@inkeep/mermaid-wysiwyg-react` | React bindings: `<MermaidWysiwyg code onCodeChange />` drop-in component plus `useMermaidEditor` hook |
 
 The code-editor integration is a contract, not a dependency. `core` exposes
 `bindTextPane`, a five-method adapter that gives any editor the same two-way sync;

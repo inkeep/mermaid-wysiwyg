@@ -9,13 +9,13 @@ test exercises the seam.
 
 | Seam | What crosses it | Substrate | Grade |
 |---|---|---|---|
-| Core engine (parse → ops → minimal edits → history) | Public contract of `@mermaid-wysiwyg/core`; every op for all 22 editable diagram types | `packages/core/test/*.test.ts` (74 tests) run the real engine on real Mermaid source and assert emitted code, round-trips, and undo | A |
+| Core engine (parse → ops → minimal edits → history) | Public contract of `@inkeep/mermaid-wysiwyg-core`; every op for all 22 editable diagram types | `packages/core/test/*.test.ts` (74 tests) run the real engine on real Mermaid source and assert emitted code, round-trips, and undo | A |
 | `bindTextPane` editor contract | The adapter contract any code editor integration implements | `packages/core/test/textpane.test.ts` drives the binding through an in-memory pane that implements exactly the shipped adapter interface: both sync directions, caret selection, reveal, drift resync, dispose | B |
-| CodeMirror binding | `@mermaid-wysiwyg/codemirror` against a real CodeMirror 6 `EditorView` | `packages/codemirror/test/binding.test.ts` (jsdom): engine ops → view, view edits → engine, decorations in the DOM, caret → entity selection, engine-authoritative undo, teardown | A |
-| Monaco binding | `@mermaid-wysiwyg/monaco` against the structural editor interface it binds | `packages/monaco/test/binding.test.ts`: fake implementing exactly the bound surface (both sync directions, decorations, caret reasons, undo keys, dispose), plus a compile-time conformance check that real `monaco-editor` types satisfy the interface | B |
+| CodeMirror binding | `@inkeep/mermaid-wysiwyg-codemirror` against a real CodeMirror 6 `EditorView` | `packages/codemirror/test/binding.test.ts` (jsdom): engine ops → view, view edits → engine, decorations in the DOM, caret → entity selection, engine-authoritative undo, teardown | A |
+| Monaco binding | `@inkeep/mermaid-wysiwyg-monaco` against the structural editor interface it binds | `packages/monaco/test/binding.test.ts`: fake implementing exactly the bound surface (both sync directions, decorations, caret reasons, undo keys, dispose), plus a compile-time conformance check that real `monaco-editor` types satisfy the interface | B |
 | SVG correlation (dom package ↔ Mermaid's rendered DOM) | Third-party dependency seam: correlators key off Mermaid's internal SVG structure, which can shift between Mermaid releases | None automated. Verified manually in the playground across all 23 diagram types | uncovered |
-| Canvas interaction layer (popovers, drag, in-place editing) | `@mermaid-wysiwyg/dom` gestures compiled to engine ops | None automated. Verified manually in the playground | uncovered |
-| React bindings | `@mermaid-wysiwyg/react` hooks/components over core events | None automated. Thin subscription layer; exercised manually via the playground | uncovered |
+| Canvas interaction layer (popovers, drag, in-place editing) | `@inkeep/mermaid-wysiwyg-dom` gestures compiled to engine ops | None automated. Verified manually in the playground | uncovered |
+| React bindings | `@inkeep/mermaid-wysiwyg-react` hooks/components over core events | None automated. Thin subscription layer; exercised manually via the playground | uncovered |
 
 ## Honest residual
 
