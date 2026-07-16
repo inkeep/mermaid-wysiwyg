@@ -3,7 +3,7 @@
  *
  * Any code editor (CodeMirror, Monaco, a plain textarea) can sync with the
  * engine by implementing TextPaneAdapter and calling the notify* methods on
- * the returned binding from its own events. @mermaid-wysiwyg/codemirror is
+ * the returned binding from its own events. @inkeep/mermaid-wysiwyg-codemirror is
  * the reference implementation.
  */
 

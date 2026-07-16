@@ -1,5 +1,5 @@
 {
-  "name": "@mermaid-wysiwyg/monaco",
+  "name": "@inkeep/mermaid-wysiwyg-monaco",
   "version": "0.1.0",
   "description": "Monaco binding for mermaid-wysiwyg: two-way code sync, entity highlight decorations, shared undo authority. No monaco-editor dependency; bring your own instance.",
   "type": "module",
@@ -14,7 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@mermaid-wysiwyg/core": "workspace:*"
+    "@inkeep/mermaid-wysiwyg-core": "workspace:*"
   },
   "devDependencies": {
     "monaco-editor": "^0.55.1",
@@ -27,6 +27,7 @@
     "src"
   ],
   "publishConfig": {
+    "access": "public",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {

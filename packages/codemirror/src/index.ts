@@ -1,7 +1,7 @@
 import { defaultKeymap } from '@codemirror/commands'
 import { EditorState, StateEffect, StateField } from '@codemirror/state'
 import { Decoration, EditorView, keymap, lineNumbers, type DecorationSet } from '@codemirror/view'
-import { bindTextPane, type MermaidWysiwygEditor, type Span, type TextPaneBinding } from '@mermaid-wysiwyg/core'
+import { bindTextPane, type MermaidWysiwygEditor, type Span, type TextPaneBinding } from '@inkeep/mermaid-wysiwyg-core'
 import { mermaidLanguage } from './language'
 
 export { mermaidLanguage } from './language'

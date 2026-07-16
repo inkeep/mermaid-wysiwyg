@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type * as monaco from 'monaco-editor'
-import { MermaidWysiwygEditor } from '@mermaid-wysiwyg/core'
+import { MermaidWysiwygEditor } from '@inkeep/mermaid-wysiwyg-core'
 import {
   bindMonaco,
   registerMermaidLanguage,

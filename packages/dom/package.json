@@ -1,5 +1,5 @@
 {
-  "name": "@mermaid-wysiwyg/dom",
+  "name": "@inkeep/mermaid-wysiwyg-dom",
   "version": "0.1.0",
   "description": "Interactive WYSIWYG canvas for Mermaid: renders through mermaid itself and overlays selection, drag-to-connect, inline label editing, and code sync.",
   "type": "module",
@@ -13,7 +13,7 @@
     "build": "tsup src/index.ts --format esm --dts --sourcemap --out-dir dist"
   },
   "dependencies": {
-    "@mermaid-wysiwyg/core": "workspace:*"
+    "@inkeep/mermaid-wysiwyg-core": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.3"
@@ -24,6 +24,7 @@
     "src"
   ],
   "publishConfig": {
+    "access": "public",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {

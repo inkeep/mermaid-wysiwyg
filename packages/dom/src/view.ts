@@ -8,7 +8,7 @@ import {
   type EdgeArrow,
   type MessageOp,
   type ParticipantType,
-} from '@mermaid-wysiwyg/core'
+} from '@inkeep/mermaid-wysiwyg-core'
 import {
   correlateClass,
   correlateEr,

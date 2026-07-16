@@ -7,7 +7,7 @@ import type {
   PieGraph,
   SequenceGraph,
   StateGraph,
-} from '@mermaid-wysiwyg/core'
+} from '@inkeep/mermaid-wysiwyg-core'
 
 export interface Correlation {
   nodes: Map<string, SVGGElement>

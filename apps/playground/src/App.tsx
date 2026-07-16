@@ -6,10 +6,10 @@ import {
   type MermaidWysiwygEditor,
   type ParticipantType,
   type ShapeId,
-} from '@mermaid-wysiwyg/core'
-import type { MermaidCanvasView, Tool } from '@mermaid-wysiwyg/dom'
-import { MermaidCanvas, useMermaidEditor } from '@mermaid-wysiwyg/react'
-import { MermaidCodeMirror } from '@mermaid-wysiwyg/codemirror'
+} from '@inkeep/mermaid-wysiwyg-core'
+import type { MermaidCanvasView, Tool } from '@inkeep/mermaid-wysiwyg-dom'
+import { MermaidCanvas, useMermaidEditor } from '@inkeep/mermaid-wysiwyg-react'
+import { MermaidCodeMirror } from '@inkeep/mermaid-wysiwyg-codemirror'
 import { MonacoPane } from './MonacoPane'
 import { SAMPLES } from '../../js-playground/src/samples'
 

@@ -1,5 +1,5 @@
 {
-  "name": "@mermaid-wysiwyg/react",
+  "name": "@inkeep/mermaid-wysiwyg-react",
   "version": "0.1.0",
   "description": "React bindings for mermaid-wysiwyg: a drop-in visual Mermaid editor component and hooks.",
   "type": "module",
@@ -13,8 +13,8 @@
     "build": "tsup src/index.tsx --format esm --dts --sourcemap --out-dir dist --external react"
   },
   "dependencies": {
-    "@mermaid-wysiwyg/core": "workspace:*",
-    "@mermaid-wysiwyg/dom": "workspace:*"
+    "@inkeep/mermaid-wysiwyg-core": "workspace:*",
+    "@inkeep/mermaid-wysiwyg-dom": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18"
@@ -47,6 +47,7 @@
     "src"
   ],
   "publishConfig": {
+    "access": "public",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {

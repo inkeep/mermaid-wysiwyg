@@ -7,9 +7,9 @@ import {
   type EdgeLine,
   type EdgeArrow,
   type ParticipantType,
-} from '@mermaid-wysiwyg/core'
-import { MermaidCanvasView, type Tool } from '@mermaid-wysiwyg/dom'
-import { MermaidCodeMirror } from '@mermaid-wysiwyg/codemirror'
+} from '@inkeep/mermaid-wysiwyg-core'
+import { MermaidCanvasView, type Tool } from '@inkeep/mermaid-wysiwyg-dom'
+import { MermaidCodeMirror } from '@inkeep/mermaid-wysiwyg-codemirror'
 import { SAMPLES } from './samples'
 import './style.css'
 

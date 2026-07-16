@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
-import { MermaidWysiwygEditor } from '@mermaid-wysiwyg/core'
-import { MermaidCanvasView, type MermaidLike, type Tool, type ViewHooks } from '@mermaid-wysiwyg/dom'
+import { MermaidWysiwygEditor } from '@inkeep/mermaid-wysiwyg-core'
+import { MermaidCanvasView, type MermaidLike, type Tool, type ViewHooks } from '@inkeep/mermaid-wysiwyg-dom'
 
-export { MermaidWysiwygEditor } from '@mermaid-wysiwyg/core'
-export { MermaidCanvasView } from '@mermaid-wysiwyg/dom'
+export { MermaidWysiwygEditor } from '@inkeep/mermaid-wysiwyg-core'
+export { MermaidCanvasView } from '@inkeep/mermaid-wysiwyg-dom'
 
 /**
  * Own an editor instance in React. Re-renders on document and selection

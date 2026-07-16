@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    exclude: ['@mermaid-wysiwyg/core', '@mermaid-wysiwyg/dom', '@mermaid-wysiwyg/codemirror', '@mermaid-wysiwyg/react'],
+    exclude: ['@inkeep/mermaid-wysiwyg-core', '@inkeep/mermaid-wysiwyg-dom', '@inkeep/mermaid-wysiwyg-codemirror', '@inkeep/mermaid-wysiwyg-react'],
     include: ['mermaid', '@mermaid-js/mermaid-zenuml', 'react', 'react-dom'],
   },
   server: {
