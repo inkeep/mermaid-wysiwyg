@@ -867,7 +867,14 @@ export class MermaidCanvasView {
       (el.children.length === 0 || el.tagName === 'text') &&
       (el.textContent?.trim().length ?? 0) > 0
     if (isLeafText(anchor)) return anchor
-    const leaves = [...anchor.querySelectorAll<Element>('text, tspan, span, p, div')].filter(isLeafText)
+    let leaves = [...anchor.querySelectorAll<Element>('text, tspan, span, p, div')].filter(isLeafText)
+    if (!leaves.length && anchor.parentElement) {
+      // a hit on a bare shape (e.g. a participant box <rect>) has no text
+      // descendants — the glyphs are a SIBLING inside the same group. Without
+      // this widening the shape itself gets hidden and the editor floats over
+      // the still-visible label, double-rendering it.
+      leaves = [...anchor.parentElement.querySelectorAll<Element>('text, tspan, span, p, div')].filter(isLeafText)
+    }
     return (
       leaves.find((el) => el.textContent?.trim() === current.trim()) ??
       leaves.find((el) => current.trim().startsWith(el.textContent?.trim() ?? ' ')) ??
@@ -879,7 +886,12 @@ export class MermaidCanvasView {
   private openOverlayEditor(anchor: Element, current: string, commitValue: (value: string) => void) {
     anchor = this.findTextTarget(anchor, current)
     const box = this.hostRect(anchor)
-    const cs = window.getComputedStyle(anchor)
+    // SVG glyph paint often lives on an inner <tspan> while the outer <text>
+    // carries a background-matching fill (mermaid sequence actor boxes do
+    // this) — read typography and color from the innermost carrier so the
+    // editor's text doesn't render background-on-background.
+    const paintSource = anchor.querySelector('tspan') ?? anchor
+    const cs = window.getComputedStyle(paintSource)
     const div = document.createElement('div')
     div.className = 'mw-inplace-editor'
     div.contentEditable = 'true'
@@ -897,7 +909,7 @@ export class MermaidCanvasView {
     div.style.fontSize = cs.fontSize
     div.style.fontFamily = cs.fontFamily
     // svg text is colored via fill; html labels via color
-    const fill = cs.fill && cs.fill !== 'none' && anchor instanceof SVGElement ? cs.fill : cs.color
+    const fill = cs.fill && cs.fill !== 'none' && paintSource instanceof SVGElement ? cs.fill : cs.color
     div.style.color = fill || 'inherit'
     this.overlayHost.appendChild(div)
     this.inlineInput = div
