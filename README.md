@@ -17,11 +17,7 @@ Type in the code; the canvas follows live. One document, two surfaces, zero lock
 
 ## Why
 
-Everyone writes Mermaid code to *view* diagrams. Editing them visually meant proprietary
-tools or one-way exporters. `mermaid-wysiwyg` keeps **text as the source of truth**: the
-canvas is Mermaid's own SVG with an interaction layer on top, and every visual action
-(rename, connect, reorder, restyle) compiles to the smallest possible edit against your
-actual source. Comments, whitespace, and formatting are never touched. Drag one edge,
+Mermaid has become the diagram language of choice for Markdown files. The mermaid ecosystem lacked open source visual editors. Consumers had to use proprietary tools or one-way exporters. `mermaid-wysiwyg` keeps **text as the source of truth**: the canvas is Mermaid's own SVG with an interaction layer on top, and every visual action (rename, connect, reorder, restyle) compiles to the smallest possible edit against your actual source. Comments, whitespace, and formatting are never touched. Drag one edge,\
 get a one-line diff.
 
 ## Quick start
@@ -69,13 +65,33 @@ pnpm install && pnpm dev   # playground at http://localhost:5173
 
 **22 of 23 Mermaid diagram types are editable.**
 
-| Depth | Types |
-|---|---|
-| Deep semantic ops | flowchart, sequence, state, class, ER, pie, gantt |
-| Line-item editing (select · edit in place · add · delete) | journey, timeline, quadrant, kanban, mindmap, treemap, packet, sankey, radar, gitgraph, xychart, requirement, C4, architecture, block |
-| Render only | zenuml (external plugin) |
+| Type | View | Item editing | Structural editing |
+|---|:---:|:---:|:---:|
+| [flowchart](https://mermaid.js.org/syntax/flowchart.html) | ✅ | ✅ | ✅ |
+| [sequence](https://mermaid.js.org/syntax/sequenceDiagram.html) | ✅ | ✅ | ✅ |
+| [state](https://mermaid.js.org/syntax/stateDiagram.html) | ✅ | ✅ | ✅ |
+| [class](https://mermaid.js.org/syntax/classDiagram.html) | ✅ | ✅ | ✅ |
+| [ER](https://mermaid.js.org/syntax/entityRelationshipDiagram.html) | ✅ | ✅ | ✅ |
+| [pie](https://mermaid.js.org/syntax/pie.html) | ✅ | ✅ | ✅ |
+| [gantt](https://mermaid.js.org/syntax/gantt.html) | ✅ | ✅ | ✅ |
+| [journey](https://mermaid.js.org/syntax/userJourney.html) | ✅ | ✅ | ❌ |
+| [timeline](https://mermaid.js.org/syntax/timeline.html) | ✅ | ✅ | ❌ |
+| [quadrant](https://mermaid.js.org/syntax/quadrantChart.html) | ✅ | ✅ | ❌ |
+| [kanban](https://mermaid.js.org/syntax/kanban.html) | ✅ | ✅ | ❌ |
+| [mindmap](https://mermaid.js.org/syntax/mindmap.html) | ✅ | ✅ | ❌ |
+| [treemap](https://mermaid.js.org/syntax/treemap.html) | ✅ | ✅ | ❌ |
+| [packet](https://mermaid.js.org/syntax/packet.html) | ✅ | ✅ | ❌ |
+| [sankey](https://mermaid.js.org/syntax/sankey.html) | ✅ | ✅ | ❌ |
+| [radar](https://mermaid.js.org/syntax/radar.html) | ✅ | ✅ | ❌ |
+| [gitgraph](https://mermaid.js.org/syntax/gitgraph.html) | ✅ | ✅ | ❌ |
+| [xychart](https://mermaid.js.org/syntax/xyChart.html) | ✅ | ✅ | ❌ |
+| [requirement](https://mermaid.js.org/syntax/requirementDiagram.html) | ✅ | ✅ | ❌ |
+| [C4](https://mermaid.js.org/syntax/c4.html) | ✅ | ✅ | ❌ |
+| [architecture](https://mermaid.js.org/syntax/architecture.html) | ✅ | ✅ | ❌ |
+| [block](https://mermaid.js.org/syntax/block.html) | ✅ | ✅ | ❌ |
+| [zenuml](https://mermaid.js.org/syntax/zenuml.html) | ✅ | ❌ | ❌ |
 
-Every type renders, round-trips losslessly, and syncs selection between code and canvas.
+**Item editing** is select, edit in place, add, and delete; **structural editing** adds connect, reorder, and restyle. Every type round-trips losslessly and syncs selection between code and canvas, including view-only zenuml (an external plugin).
 
 ## Packages
 
