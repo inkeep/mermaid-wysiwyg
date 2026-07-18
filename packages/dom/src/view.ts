@@ -109,6 +109,23 @@ let styleInjected = false
 let renderIdCounter = 0
 
 /**
+ * Read the in-place editor's label back to the string form the mermaid source
+ * carries. `textContent` alone drops `<br>` DOM elements to nothing, so a
+ * source label like `"3. Layout<br/>dagre computes coordinates"` round-trips
+ * to `"3. Layoutdagre computes coordinates"` on a no-op blur — the browser's
+ * innerHTML preserves the break, and normalising the two forms mermaid emits
+ * (`<br>` on Chromium, occasional `<br/>` on serializers) to the canonical
+ * source form `<br/>` keeps the strict equality check in the caller
+ * meaningful. Trims outer whitespace to match the prior `.textContent.trim()`
+ * contract. Kept small and reversible — any richer HTML the user paste-injects
+ * flows through untouched (mermaid accepts a small allowlist of inline tags
+ * inside labels; the parser rejects anything it doesn't know).
+ */
+function readLabelHtml(label: HTMLElement): string {
+  return (label.innerHTML ?? '').replace(/<br\s*\/?>/gi, '<br/>').trim()
+}
+
+/**
  * Interactive canvas bound to a MermaidWysiwygEditor.
  * Renders through mermaid itself (full fidelity) and overlays interaction:
  * click-select, drag-to-connect, double-click inline label editing.
@@ -781,7 +798,7 @@ export class MermaidCanvasView {
 
     const liveCommit = () => {
       if (this.inPlaceSession !== session) return
-      const value = (label.textContent ?? '').trim()
+      const value = readLabelHtml(label)
       if (!value || value === session.lastCommitted) return
       rememberCaret()
       session.lastCommitted = value
@@ -796,7 +813,7 @@ export class MermaidCanvasView {
       label.removeEventListener('keydown', onKey)
       label.removeEventListener('blur', onBlur)
       label.removeEventListener('input', onInput)
-      const value = (label.textContent ?? '').trim()
+      const value = readLabelHtml(label)
       if (commit) {
         if (value && value !== session.lastCommitted) session.commitValue(value)
         else if (!value) label.textContent = session.lastCommitted
