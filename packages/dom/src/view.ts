@@ -55,6 +55,11 @@ export interface ViewOptions {
   mermaidConfig?: Record<string, unknown>
   debounceMs?: number
   readOnly?: boolean
+  /**
+   * Canvas pan/zoom: fit-to-canvas on first render, drag empty space to pan,
+   * ctrl/cmd+wheel (or trackpad pinch) to zoom, plus corner zoom controls.
+   */
+  panZoom?: boolean
   /** CSS color for selection/hover/ghost-edge chrome */
   accentColor?: string
   /** kind of edge created by drag-to-connect */
@@ -73,6 +78,16 @@ const BASE_CSS = `
 .mw-canvas .mw-svg-host { user-select: none; -webkit-user-select: none; }
 .mw-canvas .mw-svg-host { min-height: 100%; display: flex; align-items: flex-start; justify-content: center; padding: 16px; box-sizing: border-box; }
 .mw-canvas svg { max-width: 100%; height: auto; }
+.mw-canvas.mw-panzoom { overflow: hidden; }
+.mw-canvas.mw-panzoom .mw-svg-host { position: absolute; inset: 0; display: block; padding: 0; min-height: 0; overflow: hidden; }
+.mw-canvas.mw-panzoom .mw-svg-host svg { position: absolute; left: 0; top: 0; max-width: none; height: auto; transform-origin: 0 0; }
+.mw-canvas.mw-panzoom .mw-svg-host { cursor: grab; }
+.mw-canvas.mw-panzoom.mw-panning .mw-svg-host { cursor: grabbing; }
+.mw-canvas.mw-panzoom [data-mw-entity] { cursor: pointer; }
+.mw-zoom-controls { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 4px; z-index: 6; }
+.mw-zoom-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border-radius: 7px; border: 1px solid var(--mw-chrome-border, rgba(128,128,128,.35)); background: var(--mw-chrome-bg, rgba(24,24,27,.92)); color: var(--mw-chrome-fg, #e4e4e7); cursor: pointer; }
+.mw-zoom-btn:hover { background: var(--mw-chrome-hover, rgba(63,63,70,.9)); }
+.mw-zoom-btn svg { width: 14px; height: 14px; }
 .mw-canvas [data-mw-entity] { cursor: pointer; }
 .mw-canvas.mw-readonly [data-mw-entity] { cursor: default; }
 .mw-canvas.mw-tool-connect [data-mw-entity^="node:"] { cursor: crosshair; }
@@ -99,8 +114,8 @@ const BASE_CSS = `
   box-shadow: 0 0 6px var(--mw-accent, #6366f1);
 }
 .mw-canvas [contenteditable="true"] {
-  outline: 1.5px solid var(--mw-accent, #6366f1); outline-offset: 2px; border-radius: 3px;
-  cursor: text; white-space: pre-wrap; min-width: 8px;
+  outline: none; cursor: text; white-space: pre-wrap; min-width: 8px;
+  caret-color: var(--mw-accent, #6366f1);
 }
 `
 
@@ -126,6 +141,47 @@ function readLabelHtml(label: HTMLElement): string {
 }
 
 /**
+ * Absolute caret offset within `root`, counted across all of its text nodes.
+ * `Selection.anchorOffset` alone is relative to the anchor node — a label that
+ * the browser split into several text nodes (or that contains `<br>`) would
+ * restore the caret into the wrong word.
+ */
+function caretOffsetWithin(root: HTMLElement): number {
+  const sel = window.getSelection()
+  if (!sel?.anchorNode || !root.contains(sel.anchorNode)) return -1
+  const range = document.createRange()
+  range.selectNodeContents(root)
+  range.setEnd(sel.anchorNode, sel.anchorOffset)
+  return range.toString().length
+}
+
+/** place a collapsed caret at an absolute text offset within `root` */
+function placeCaretAt(root: HTMLElement, offset: number) {
+  const sel = window.getSelection()
+  if (!sel) return
+  const range = document.createRange()
+  let remaining = Math.max(0, offset)
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let node = walker.nextNode() as Text | null
+  while (node) {
+    const len = node.textContent?.length ?? 0
+    if (remaining <= len) {
+      range.setStart(node, remaining)
+      range.collapse(true)
+      sel.removeAllRanges()
+      sel.addRange(range)
+      return
+    }
+    remaining -= len
+    node = walker.nextNode() as Text | null
+  }
+  range.selectNodeContents(root)
+  range.collapse(false)
+  sel.removeAllRanges()
+  sel.addRange(range)
+}
+
+/**
  * Interactive canvas bound to a MermaidWysiwygEditor.
  * Renders through mermaid itself (full fidelity) and overlays interaction:
  * click-select, drag-to-connect, double-click inline label editing.
@@ -145,6 +201,13 @@ export class MermaidCanvasView {
   private plusMenu: HTMLElement | null = null
   private hoveredLifeline: string | null = null
   private svg: SVGSVGElement | null = null
+  /** tracks external transforms on the svg (host pan/zoom toolbars) */
+  private svgTransformObserver: MutationObserver | null = null
+  private popoverFollowRaf = 0
+  /** our own pan/zoom writes must not trip the external-transform observer */
+  private applyingOwnTransform = false
+  /** which of an entity's twin elements the user clicked (popover anchor) */
+  private popoverAnchorPick: { entityId: string; index: number } | null = null
   private tool: Tool = 'select'
   private readOnly: boolean
   private debounceMs: number
@@ -173,8 +236,24 @@ export class MermaidCanvasView {
     caretOffset: number
     commitValue: (v: string) => void
     liveTimer: ReturnType<typeof setTimeout> | null
+    /** the label element the session is currently attached to */
+    label: HTMLElement | null
+    /** finish the session from outside the attach closure (commit or revert) */
+    finish: ((commit: boolean) => void) | null
   } | null = null
   private lastError: string | null = null
+  /** a render was requested while an in-place edit was typing; applied on finish */
+  private renderHeldByEdit = false
+  // pan/zoom state (only used when options.panZoom is set)
+  private panZoomEnabled: boolean
+  private zoomScale = 1
+  private zoomTx = 0
+  private zoomTy = 0
+  /** the user panned/zoomed — keep their viewport across re-renders */
+  private hasUserView = false
+  private svgSize: { width: number; height: number } | null = null
+  private panSession: { pointerId: number; x: number; y: number; tx: number; ty: number; moved: boolean } | null = null
+  private zoomControls: HTMLElement | null = null
   /** per-instance staleness counter; a shared one would drop renders across instances */
   private renderSeq = 0
 
@@ -183,6 +262,7 @@ export class MermaidCanvasView {
     this.container = options.container
     this.mermaid = options.mermaid
     this.readOnly = options.readOnly ?? false
+    this.panZoomEnabled = options.panZoom ?? false
     this.debounceMs = options.debounceMs ?? 200
     this.defaultEdge = options.defaultEdge ?? {}
     this.hooks = options.hooks ?? {}
@@ -220,6 +300,25 @@ export class MermaidCanvasView {
     const keydown = (e: KeyboardEvent) => this.onKeyDown(e)
     this.container.addEventListener('keydown', keydown)
     this.disposers.push(() => this.container.removeEventListener('keydown', keydown))
+
+    // interacting anywhere outside the canvas deselects: the popover, the
+    // lifeline plus-menu, and any open editing session must not linger while
+    // the user works elsewhere (e.g. a host app's own pan controls)
+    const docPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null
+      if (!target || this.container.contains(target)) return
+      this.inPlaceSession?.finish?.(true)
+      // the overlay editor commits itself via its own blur handler
+      this.clearLifelineUi()
+      this.popover.hide()
+      if (this.editor.selection.length) this.editor.clearSelection('canvas')
+    }
+    // capture phase: other widgets on the page (e.g. CodeMirror) stop the
+    // bubbling pointerdown before it would reach the document
+    document.addEventListener('pointerdown', docPointerDown, true)
+    this.disposers.push(() => document.removeEventListener('pointerdown', docPointerDown, true))
+
+    if (this.panZoomEnabled) this.setupPanZoom()
 
     void this.render()
   }
@@ -288,7 +387,193 @@ export class MermaidCanvasView {
     this.renderTimer = setTimeout(() => void this.render(), this.debounceMs)
   }
 
+  // ----- pan / zoom -----
+
+  private setupPanZoom() {
+    this.container.classList.add('mw-panzoom')
+
+    const onWheel = (e: WheelEvent) => {
+      // trackpad pinch arrives as ctrl+wheel; plain wheel keeps scrolling the page
+      if (!e.ctrlKey && !e.metaKey) return
+      e.preventDefault()
+      // pinches stream small deltas; discrete wheel ticks send ±100+ — clamp
+      // so one tick can't triple the scale
+      const delta = Math.max(-40, Math.min(40, e.deltaY))
+      this.zoomAt(e.clientX, e.clientY, Math.exp(-delta * 0.01))
+    }
+    this.container.addEventListener('wheel', onWheel, { passive: false })
+    this.disposers.push(() => this.container.removeEventListener('wheel', onWheel))
+
+    const onDown = (e: PointerEvent) => {
+      if (e.button !== 0) return
+      if (this.tool === 'connect' || e.altKey) return
+      if (this.inlineInput || this.inPlaceSession) return
+      const target = e.target as Element | null
+      if (!target || !this.svgHost.contains(target)) return
+      // background only — entity presses belong to select/drag gestures
+      let el: Element | null = target
+      while (el && el !== this.container) {
+        if (el.getAttribute?.('data-mw-entity')) return
+        el = el.parentElement
+      }
+      this.panSession = { pointerId: e.pointerId, x: e.clientX, y: e.clientY, tx: this.zoomTx, ty: this.zoomTy, moved: false }
+    }
+    const onMove = (e: PointerEvent) => {
+      const pan = this.panSession
+      if (!pan || e.pointerId !== pan.pointerId) return
+      const dx = e.clientX - pan.x
+      const dy = e.clientY - pan.y
+      if (!pan.moved && Math.hypot(dx, dy) > 4) {
+        pan.moved = true
+        this.container.classList.add('mw-panning')
+        try {
+          this.container.setPointerCapture(e.pointerId)
+        } catch {
+          // synthetic pointers (tests, automation) have no capturable id
+        }
+        this.popover.hide()
+      }
+      if (pan.moved) {
+        this.zoomTx = pan.tx + dx
+        this.zoomTy = pan.ty + dy
+        this.hasUserView = true
+        this.applyViewTransform()
+      }
+    }
+    const onUp = (e: PointerEvent) => {
+      const pan = this.panSession
+      if (!pan || e.pointerId !== pan.pointerId) return
+      this.panSession = null
+      this.container.classList.remove('mw-panning')
+      if (pan.moved) {
+        this.suppressNextClick = true
+        this.updatePopover()
+      }
+    }
+    this.container.addEventListener('pointerdown', onDown)
+    this.container.addEventListener('pointermove', onMove)
+    this.container.addEventListener('pointerup', onUp)
+    this.container.addEventListener('pointercancel', onUp)
+    this.disposers.push(() => {
+      this.container.removeEventListener('pointerdown', onDown)
+      this.container.removeEventListener('pointermove', onMove)
+      this.container.removeEventListener('pointerup', onUp)
+      this.container.removeEventListener('pointercancel', onUp)
+    })
+
+    const controls = document.createElement('div')
+    controls.className = 'mw-zoom-controls'
+    const btn = (title: string, iconMarkup: string, fn: () => void) => {
+      const b = document.createElement('button')
+      b.type = 'button'
+      b.className = 'mw-zoom-btn'
+      b.title = title
+      b.innerHTML = iconMarkup
+      b.addEventListener('pointerdown', (e) => e.stopPropagation())
+      b.addEventListener('click', (e) => {
+        e.stopPropagation()
+        fn()
+      })
+      controls.appendChild(b)
+    }
+    btn('Zoom out', ICONS.minus, () => this.zoomBy(1 / 1.25))
+    btn('Zoom in', ICONS.plus, () => this.zoomBy(1.25))
+    btn('Fit diagram', ICONS.maximize, () => this.fitView())
+    this.container.appendChild(controls)
+    this.zoomControls = controls
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => {
+        if (!this.hasUserView) this.fitView()
+      })
+      ro.observe(this.container)
+      this.disposers.push(() => ro.disconnect())
+    }
+  }
+
+  /** zoom about the canvas center (used by the corner controls) */
+  zoomBy(factor: number) {
+    const rect = this.container.getBoundingClientRect()
+    this.zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, factor)
+  }
+
+  private zoomAt(clientX: number, clientY: number, factor: number) {
+    if (!this.panZoomEnabled) return
+    const rect = this.container.getBoundingClientRect()
+    const px = clientX - rect.left
+    const py = clientY - rect.top
+    const next = Math.min(Math.max(this.zoomScale * factor, 0.1), 4)
+    const k = next / this.zoomScale
+    if (k === 1) return
+    this.zoomTx = px - (px - this.zoomTx) * k
+    this.zoomTy = py - (py - this.zoomTy) * k
+    this.zoomScale = next
+    this.hasUserView = true
+    this.applyViewTransform()
+    this.updatePopover()
+  }
+
+  /** scale + center the diagram to the canvas (the default view) */
+  fitView() {
+    if (!this.panZoomEnabled || !this.svg || !this.svgSize) return
+    const cw = this.container.clientWidth
+    const ch = this.container.clientHeight
+    if (!cw || !ch) return
+    const pad = 28
+    const { width, height } = this.svgSize
+    const s = Math.min((cw - pad * 2) / width, (ch - pad * 2) / height)
+    this.zoomScale = Math.min(Math.max(s, 0.1), 2)
+    this.zoomTx = (cw - width * this.zoomScale) / 2
+    this.zoomTy = (ch - height * this.zoomScale) / 2
+    this.hasUserView = false
+    this.applyViewTransform()
+    this.updatePopover()
+  }
+
+  private applyViewTransform() {
+    if (!this.svg) return
+    this.applyingOwnTransform = true
+    this.svg.style.transform = `translate(${this.zoomTx}px, ${this.zoomTy}px) scale(${this.zoomScale})`
+    // mutation records for this write are delivered in a microtask queued at
+    // mutation time — before this one — so the observer still sees the flag
+    queueMicrotask(() => {
+      this.applyingOwnTransform = false
+    })
+  }
+
+  /** pixel-size the fresh svg from its viewBox so the transform is the only scaling */
+  private prepareSvgForPanZoom() {
+    const svg = this.svg
+    if (!svg) return
+    let width = 0
+    let height = 0
+    const vb = svg.viewBox?.baseVal
+    if (vb && vb.width && vb.height) {
+      width = vb.width
+      height = vb.height
+    } else {
+      const bb = (svg as SVGGraphicsElement).getBBox?.()
+      width = bb?.width || 800
+      height = bb?.height || 600
+    }
+    this.svgSize = { width, height }
+    svg.removeAttribute('width')
+    svg.removeAttribute('height')
+    svg.style.width = `${width}px`
+    svg.style.height = `${height}px`
+    svg.style.maxWidth = 'none'
+    if (this.hasUserView) this.applyViewTransform()
+    else this.fitView()
+  }
+
   async render(): Promise<void> {
+    // typing in place must feel like a plain textbox: never swap the SVG out
+    // from under an active session. Live commits keep the code surfaces in
+    // sync; the canvas catches up the moment the session ends.
+    if (this.inPlaceSession) {
+      this.renderHeldByEdit = true
+      return
+    }
     const code = this.editor.code
     if (code === this.lastRenderedCode) {
       // an intervening failed parse can leave a stale error badge even though
@@ -307,19 +592,37 @@ export class MermaidCanvasView {
     try {
       const { svg } = await this.mermaid.render(id, code)
       if (seq !== this.renderSeq) return // stale
+      // an in-place edit may have kept typing since the live commit this render
+      // came from — snapshot the label's real text and caret before the swap
+      // destroys them, then reinject below so no keystroke is lost
+      // a session may have OPENED while the render was in flight — re-read it
+      // through the accessor so the early-return narrowing above doesn't apply
+      let liveEdit: { value: string; caret: number } | null = null
+      const midFlightSession = this.activeInPlaceSession()
+      const editingLabel = midFlightSession?.label
+      if (midFlightSession && editingLabel?.isConnected) {
+        liveEdit = { value: readLabelHtml(editingLabel), caret: caretOffsetWithin(editingLabel) }
+        // a pending live-commit timer closes over the label we are about to
+        // detach; the reinjection below reschedules it against the new one
+        if (midFlightSession.liveTimer) {
+          clearTimeout(midFlightSession.liveTimer)
+          midFlightSession.liveTimer = null
+        }
+      }
       this.lastRenderedCode = code
       this.lastError = null
       this.errorBadge.style.display = 'none'
       this.svgHost.innerHTML = svg
       this.svg = this.svgHost.querySelector('svg')
       if (this.svg) {
-        this.svg.style.maxWidth = '100%'
+        if (this.panZoomEnabled) this.prepareSvgForPanZoom()
+        else this.svg.style.maxWidth = '100%'
         this.bindSvg()
       }
       this.editor.setDiagnostics([])
       this.emit('render', { ok: true })
-      if (this.inPlaceSession) {
-        this.resumeInPlaceSession()
+      if (this.activeInPlaceSession()) {
+        this.resumeInPlaceSession(liveEdit)
       } else if (this.pendingEditEntity) {
         const entity = this.pendingEditEntity
         this.pendingEditEntity = null
@@ -372,6 +675,30 @@ export class MermaidCanvasView {
       svg.addEventListener('pointerleave', () => this.scheduleLifelineClear())
     }
 
+    // host apps may pan/zoom the svg from their own toolbars (transform on
+    // the svg or an inner group) — the popover must follow its entity instead
+    // of floating where the diagram used to be
+    this.svgTransformObserver?.disconnect()
+    if (typeof MutationObserver !== 'undefined') {
+      this.svgTransformObserver = new MutationObserver(() => {
+        // internal pan/zoom paths already reposition the popover themselves
+        if (this.applyingOwnTransform || this.popoverFollowRaf || !this.popover.isOpen) return
+        const schedule =
+          typeof requestAnimationFrame === 'function'
+            ? requestAnimationFrame
+            : (fn: FrameRequestCallback) => setTimeout(fn, 16) as unknown as number
+        this.popoverFollowRaf = schedule(() => {
+          this.popoverFollowRaf = 0
+          this.updatePopover()
+        })
+      })
+      this.svgTransformObserver.observe(svg, {
+        attributes: true,
+        attributeFilter: ['style', 'transform'],
+        subtree: true,
+      })
+    }
+
     this.applySelectionStyles()
   }
 
@@ -414,9 +741,14 @@ export class MermaidCanvasView {
     // while an in-place editor is open, clicks must not re-select or steal
     // focus — blurring the editor already commits the edit
     if (this.inlineInput || this.inPlaceSession) return
-    const entity = this.entityFromEvent(e)
-    if (entity) {
+    const hit = this.entityHitFromEvent(e)
+    if (hit) {
+      const entity = hit.id
       this.hooks.onEntityClick?.(entity, e)
+      // several elements can share one entity id (a sequence participant is
+      // rendered as a top AND a bottom box) — remember which one was clicked
+      // so the popover opens where the user pointed, not at the topmost twin
+      this.popoverAnchorPick = { entityId: entity, index: this.entityElementIndex(entity, hit.el) }
       if (e.shiftKey || e.metaKey || e.ctrlKey) {
         const sel = this.editor.selection.includes(entity)
           ? this.editor.selection.filter((s) => s !== entity)
@@ -424,11 +756,23 @@ export class MermaidCanvasView {
         this.editor.setSelection(sel, 'canvas')
       } else {
         this.editor.setSelection([entity], 'canvas')
+        // clicking the other twin of an already-selected entity changes the
+        // anchor pick but not the selection — no selectionChange fires, so
+        // re-anchor explicitly
+        this.updatePopover()
       }
       this.container.focus({ preventScroll: true })
     } else {
       this.editor.clearSelection('canvas')
     }
+  }
+
+  /** position of `el` among all elements carrying this entity id (DOM order) */
+  private entityElementIndex(entityId: string, el: Element): number {
+    if (!this.svg) return 0
+    const els = [...this.svg.querySelectorAll(`[data-mw-entity="${CSS.escape(entityId)}"]`)]
+    const index = els.indexOf(el)
+    return index >= 0 ? index : 0
   }
 
   private onSvgDblClick(e: MouseEvent) {
@@ -630,6 +974,12 @@ export class MermaidCanvasView {
     if (this.readOnly) return
     const { flowchart, sequence } = this.editor.result
     this.closeInlineEditor(false)
+    // moving to a different entity must settle the open session first — its
+    // deferred blur handler would see a replaced session and bail, stranding
+    // the old label contenteditable with uncommitted text
+    if (this.inPlaceSession && this.inPlaceSession.entityId !== entityId) {
+      this.inPlaceSession.finish?.(true)
+    }
     this.popover.hide()
 
     // only honor a hint that actually belongs to this entity
@@ -763,6 +1113,13 @@ export class MermaidCanvasView {
     if (!label || !(label instanceof HTMLElement)) return false
 
     const resuming = this.inPlaceSession?.entityId === entityId
+    if (resuming && this.inPlaceSession!.label === label && label.isConnected) {
+      // the session is already attached to this exact element (e.g. a second
+      // double-click mid-session) — re-adding listeners would duplicate every
+      // commit and let stale closures race the live ones
+      label.focus()
+      return true
+    }
     if (!resuming) {
       this.inPlaceSession = {
         entityId,
@@ -772,28 +1129,35 @@ export class MermaidCanvasView {
         caretOffset: -1,
         commitValue,
         liveTimer: null,
+        label: null,
+        finish: null,
       }
     }
     const session = this.inPlaceSession!
+    session.label = label
 
     label.setAttribute('contenteditable', 'true')
+    // the box can't grow while renders are held — keep the text on one line
+    // and let it spill past the shape instead of wrapping into the clip
+    const clipHost = label.closest('foreignObject') as SVGElement | null
+    const prevWhiteSpace = label.style.whiteSpace
+    const prevClipOverflow = clipHost?.style.overflow ?? ''
+    label.style.whiteSpace = 'nowrap'
+    if (clipHost) clipHost.style.overflow = 'visible'
     label.focus()
-    const selection = window.getSelection()
-    const range = document.createRange()
-    if (resuming && session.caretOffset >= 0 && label.firstChild) {
-      const textNode = label.firstChild
-      const len = textNode.textContent?.length ?? 0
-      range.setStart(textNode, Math.min(session.caretOffset, len))
-      range.collapse(true)
+    if (resuming && session.caretOffset >= 0) {
+      placeCaretAt(label, session.caretOffset)
     } else {
+      const selection = window.getSelection()
+      const range = document.createRange()
       range.selectNodeContents(label)
+      selection?.removeAllRanges()
+      selection?.addRange(range)
     }
-    selection?.removeAllRanges()
-    selection?.addRange(range)
 
     const rememberCaret = () => {
-      const sel = window.getSelection()
-      if (sel && sel.anchorNode && label.contains(sel.anchorNode)) session.caretOffset = sel.anchorOffset
+      const offset = caretOffsetWithin(label)
+      if (offset >= 0) session.caretOffset = offset
     }
 
     const liveCommit = () => {
@@ -810,6 +1174,8 @@ export class MermaidCanvasView {
       this.inPlaceSession = null
       if (session.liveTimer) clearTimeout(session.liveTimer)
       label.removeAttribute('contenteditable')
+      label.style.whiteSpace = prevWhiteSpace
+      if (clipHost) clipHost.style.overflow = prevClipOverflow
       label.removeEventListener('keydown', onKey)
       label.removeEventListener('blur', onBlur)
       label.removeEventListener('input', onInput)
@@ -818,9 +1184,17 @@ export class MermaidCanvasView {
         if (value && value !== session.lastCommitted) session.commitValue(value)
         else if (!value) label.textContent = session.lastCommitted
       } else {
-        // Escape: revert everything, including live-committed intermediate states
+        // Escape: revert everything, including live-committed intermediate
+        // states. Restore the label DOM directly too — when the reverted code
+        // equals the last rendered code, render() short-circuits and would
+        // leave the typed text on screen.
+        label.innerHTML = session.original
         if (session.lastCommitted !== session.original) session.commitValue(session.original)
-        else label.textContent = session.original
+      }
+      // apply any canvas render held back while the session was typing
+      if (this.renderHeldByEdit) {
+        this.renderHeldByEdit = false
+        this.scheduleRender()
       }
       this.updatePopover()
     }
@@ -847,14 +1221,20 @@ export class MermaidCanvasView {
         }
       }, 60)
     }
+    session.finish = finish
     label.addEventListener('keydown', onKey)
     label.addEventListener('blur', onBlur)
     label.addEventListener('input', onInput)
     return true
   }
 
+  /** non-narrowing accessor: render() re-reads the session after awaits */
+  private activeInPlaceSession() {
+    return this.inPlaceSession
+  }
+
   /** re-attach a live in-place editing session after a render replaced the DOM */
-  private resumeInPlaceSession() {
+  private resumeInPlaceSession(liveEdit?: { value: string; caret: number } | null) {
     const session = this.inPlaceSession
     if (!session) return
     if (!this.editor.entityExists(session.entityId)) {
@@ -869,6 +1249,16 @@ export class MermaidCanvasView {
       return
     }
     this.editInPlace(session.entityId, anchor, session.labelSelector, session.lastCommitted, session.commitValue)
+    // reinject what the user typed between the live commit and the swap — the
+    // freshly rendered label only carries the committed text
+    const label = this.inPlaceSession === session ? session.label : null
+    if (!label || !liveEdit) return
+    if (liveEdit.value && liveEdit.value !== session.lastCommitted && liveEdit.value !== readLabelHtml(label)) {
+      label.innerHTML = liveEdit.value
+      // run the carried-over delta through the normal live-commit debounce
+      label.dispatchEvent(new Event('input'))
+    }
+    if (liveEdit.caret >= 0) placeCaretAt(label, liveEdit.caret)
   }
 
   /**
@@ -923,7 +1313,11 @@ export class MermaidCanvasView {
     div.style.lineHeight = `${Math.max(box.height, 12)}px`
     div.style.fontStyle = cs.fontStyle
     div.style.fontWeight = cs.fontWeight
-    div.style.fontSize = cs.fontSize
+    // computed font-size ignores the pan/zoom transform; the overlay must
+    // match the scaled glyphs it covers
+    const zoom = this.panZoomEnabled ? this.zoomScale : 1
+    const basePx = Number.parseFloat(cs.fontSize)
+    div.style.fontSize = Number.isFinite(basePx) ? `${basePx * zoom}px` : cs.fontSize
     div.style.fontFamily = cs.fontFamily
     // svg text is colored via fill; html labels via color
     const fill = cs.fill && cs.fill !== 'none' && paintSource instanceof SVGElement ? cs.fill : cs.color
@@ -1035,16 +1429,24 @@ export class MermaidCanvasView {
     if (sel.length !== 1 || !this.svg) return
     const id = sel[0]
     // several elements can belong to one entity (e.g. participant top+bottom
-    // boxes) — anchor the popover to the topmost one
+    // boxes) — anchor at the element the user actually clicked when we know
+    // it, falling back to the topmost twin (code-pane selection sync, resumes
+    // after re-renders that changed the element count)
+    const els = [...this.svg.querySelectorAll(`[data-mw-entity="${CSS.escape(id)}"]`)]
     let anchor: Element | null = null
-    let anchorTop = Infinity
-    this.svg.querySelectorAll(`[data-mw-entity="${CSS.escape(id)}"]`).forEach((el) => {
-      const top = el.getBoundingClientRect().top
-      if (top < anchorTop) {
-        anchorTop = top
-        anchor = el
+    const pick = this.popoverAnchorPick
+    if (pick && pick.entityId === id && els[pick.index]) {
+      anchor = els[pick.index]
+    } else {
+      let anchorTop = Infinity
+      for (const el of els) {
+        const top = el.getBoundingClientRect().top
+        if (top < anchorTop) {
+          anchorTop = top
+          anchor = el
+        }
       }
-    })
+    }
     if (!anchor) return
     const actions = this.actionsFor(id)
     if (!actions.length) return
@@ -1726,14 +2128,19 @@ export class MermaidCanvasView {
   destroy() {
     if (this.renderTimer) clearTimeout(this.renderTimer)
     if (this.lifelineClearTimer) clearTimeout(this.lifelineClearTimer)
+    if (this.inPlaceSession?.liveTimer) clearTimeout(this.inPlaceSession.liveTimer)
+    this.inPlaceSession = null
+    this.svgTransformObserver?.disconnect()
+    this.svgTransformObserver = null
     this.disposers.forEach((d) => d())
     this.closeInlineEditor(false)
     this.cancelConnect()
     this.clearLifelineUi()
     this.popover.hide()
-    this.container.classList.remove('mw-canvas', 'mw-tool-connect', 'mw-readonly')
+    this.container.classList.remove('mw-canvas', 'mw-tool-connect', 'mw-readonly', 'mw-panzoom', 'mw-panning')
     this.svgHost.remove()
     this.overlayHost.remove()
     this.errorBadge.remove()
+    this.zoomControls?.remove()
   }
 }

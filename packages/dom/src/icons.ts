@@ -45,6 +45,10 @@ export const ICONS = {
   ),
   user: icon('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
   minus: icon('<path d="M5 12h14"/>'),
+  plus: icon('<path d="M5 12h14"/><path d="M12 5v14"/>'),
+  maximize: icon(
+    '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+  ),
   ellipsis: icon('<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>'),
   chevronDown: icon('<path d="m6 9 6 6 6-6"/>'),
 }

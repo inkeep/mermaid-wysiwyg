@@ -7,7 +7,7 @@
 Click, drag, and type directly on the diagram; your Mermaid source updates surgically.
 Type in the code; the canvas follows live. One document, two surfaces, zero lock-in.
 
-[![GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](./LICENSE)
+[![MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Mermaid 11](https://img.shields.io/badge/mermaid-v11-ff3670.svg)](https://mermaid.js.org)
 [![Types](https://img.shields.io/badge/types-included-3178c6.svg)](#packages)
 
@@ -127,4 +127,4 @@ Anything we can't match degrades to view-only; the diagram still renders perfect
 
 ## License
 
-[GPL-3.0-or-later](./LICENSE) © [Inkeep](https://inkeep.com)
+[MIT](./LICENSE) © [Inkeep](https://inkeep.com)

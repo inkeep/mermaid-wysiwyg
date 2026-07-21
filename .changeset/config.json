@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.0.5/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [
+    [
+      "@inkeep/mermaid-wysiwyg-core",
+      "@inkeep/mermaid-wysiwyg-dom",
+      "@inkeep/mermaid-wysiwyg-react",
+      "@inkeep/mermaid-wysiwyg-codemirror",
+      "@inkeep/mermaid-wysiwyg-monaco"
+    ]
+  ],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": ["playground", "js-playground", "site"]
+}
