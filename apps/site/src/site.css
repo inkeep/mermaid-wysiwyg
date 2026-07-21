@@ -39,23 +39,12 @@ textarea {
 /* The live demo embeds the real editor; keep its canvas transparent so the
    dotted preview background shows through, and center the rendered SVG the
    way the design's preview pane does. */
-.site-demo-canvas {
-  position: absolute;
-  inset: 0;
-}
+/* the package injects `.mw-canvas { position: relative }` after this sheet,
+   so the fill-the-pane positioning must out-rank it */
 .site-demo-canvas.mw-canvas {
   --mw-accent: #0e7c6b;
-}
-.site-demo-canvas .mw-svg-host {
-  min-height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-.site-demo-canvas svg {
-  max-width: 100%;
-  height: auto;
+  position: absolute;
+  inset: 0;
 }
 
 /* Demo source pane — the real @inkeep/mermaid-wysiwyg-codemirror binding,
@@ -85,6 +74,7 @@ textarea {
 }
 .demo-cm .cm-content {
   caret-color: #0e7c6b;
+  color: #1c1a17;
 }
 .demo-cm .cm-gutters {
   background: transparent;
@@ -135,9 +125,10 @@ textarea {
 /* dark pane variant */
 .demo-pane-dark .demo-cm .cm-content {
   caret-color: #7fb3a8;
+  color: #ede7da;
 }
 .demo-pane-dark .demo-cm .cm-gutters {
-  color: #5d574c;
+  color: #7a7365;
 }
 .demo-pane-dark .demo-cm .cm-activeLine {
   background: rgba(127, 179, 168, 0.07);

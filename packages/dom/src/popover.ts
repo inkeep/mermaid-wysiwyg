@@ -52,7 +52,7 @@ export class Popover {
   }
 
   /** anchorRect is in host-relative coordinates */
-  show(anchorRect: { left: number; top: number; width: number }, actions: PopoverAction[]) {
+  show(anchorRect: { left: number; top: number; width: number; height?: number }, actions: PopoverAction[]) {
     this.hide()
     const el = document.createElement('div')
     el.className = 'mw-popover'
@@ -84,10 +84,25 @@ export class Popover {
       })
       el.appendChild(btn)
     }
-    el.style.left = `${anchorRect.left + anchorRect.width / 2}px`
-    el.style.top = `${Math.max(anchorRect.top - 8, 34)}px`
     this.host.appendChild(el)
     this.el = el
+    // hosts commonly clip at their bounds (overflow: hidden) — keep the
+    // toolbar inside them: clamp horizontally, and flip below the anchor
+    // when there is no headroom above it
+    const bounds = this.host.parentElement
+    let centerX = anchorRect.left + anchorRect.width / 2
+    const half = el.offsetWidth / 2
+    if (bounds && bounds.clientWidth > el.offsetWidth + 8) {
+      centerX = Math.min(Math.max(centerX, half + 4 + bounds.scrollLeft), bounds.scrollLeft + bounds.clientWidth - half - 4)
+    }
+    el.style.left = `${centerX}px`
+    const above = anchorRect.top - 8
+    if (above - el.offsetHeight < 4) {
+      el.classList.add('mw-popover-below')
+      el.style.top = `${anchorRect.top + (anchorRect.height ?? 0) + 8}px`
+    } else {
+      el.style.top = `${above}px`
+    }
   }
 
   private togglePanel(panel: PopoverPanel) {
@@ -153,6 +168,7 @@ export class Popover {
 }
 
 export const POPOVER_CSS = `
+.mw-popover.mw-popover-below { transform: translate(-50%, 0); }
 .mw-popover {
   position: absolute; z-index: 20; transform: translate(-50%, -100%);
   display: flex; align-items: center; gap: 2px; padding: 4px;

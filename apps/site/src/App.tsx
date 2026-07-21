@@ -175,20 +175,52 @@ function CodeMirrorPane({ editor }: { editor: MermaidWysiwygEditor }) {
 }
 
 function CodeCard({ title, children }: { title: string; children: ReactNode }) {
+  const preRef = useRef<HTMLPreElement>(null)
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    const text = preRef.current?.textContent ?? ''
+    void navigator.clipboard?.writeText(text)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1400)
+  }
   return (
     <div style={{ background: '#1E1B16', borderRadius: 16, overflow: 'hidden', border: '1px solid #2E2A22' }}>
       <div
         style={{
-          padding: '11px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '8px 10px 8px 16px',
           borderBottom: '1px solid #2E2A22',
           fontFamily: mono,
           fontSize: 12,
           color: '#8A9B96',
         }}
       >
-        {title}
+        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
+        <button
+          type="button"
+          onClick={copy}
+          aria-label={`Copy ${title} example`}
+          style={{
+            marginLeft: 'auto',
+            border: 'none',
+            background: copied ? '#0E7C6B' : '#2E2A22',
+            color: '#EDE7DA',
+            fontFamily: 'inherit',
+            fontSize: 11,
+            padding: '4px 9px',
+            borderRadius: 6,
+            cursor: 'pointer',
+            flex: 'none',
+            transition: 'background .15s',
+          }}
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </button>
       </div>
       <pre
+        ref={preRef}
         style={{
           margin: 0,
           padding: '18px 16px',
@@ -209,14 +241,28 @@ export default function App() {
   const [type, setType] = useState('flowchart')
   const [theme, setTheme] = useState('paper')
   const [skin, setSkin] = useState<'light' | 'dark'>('light')
+  const [expanded, setExpanded] = useState(false)
+
+  // fullscreen playground: Esc exits, and the page behind must not scroll
+  useEffect(() => {
+    if (!expanded) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !(e.target instanceof HTMLElement && e.target.isContentEditable)) {
+        setExpanded(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [expanded])
   const { editor } = useMermaidEditor(PRESETS.flowchart)
   const [copied, setCopied] = useState(false)
   const [installCopied, setInstallCopied] = useState(false)
   const [ghStars, setGhStars] = useState<number | null>(null)
-  const [ghLicense, setGhLicense] = useState<string | null>(null)
-  const [showArrow, setShowArrow] = useState(false)
-  const [arrowRight, setArrowRight] = useState(100)
-  const navStarRef = useRef<HTMLAnchorElement>(null)
 
   const switchType = (next: string) => {
     setType(next)
@@ -229,15 +275,13 @@ export default function App() {
       .then((d) => {
         if (!d) return
         if (typeof d.stargazers_count === 'number') setGhStars(d.stargazers_count)
-        const spdx = d.license?.spdx_id
-        if (spdx && spdx !== 'NOASSERTION') setGhLicense(spdx)
       })
       .catch(() => {})
   }, [])
 
   const starsLabel =
     ghStars == null ? 'Star' : ghStars >= 1000 ? `${(ghStars / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(ghStars)
-  const licenseLabel = ghLicense ?? 'GPL-3.0'
+  const licenseLabel = 'MIT'
 
   const copyInstall = () => {
     void navigator.clipboard?.writeText(INSTALL_CMD)
@@ -250,18 +294,6 @@ export default function App() {
     window.setTimeout(() => setCopied(false), 1400)
   }
   const reset = () => editor.setCode(PRESETS[type], 'api')
-  const pointToNavStar = () => {
-    const el = navStarRef.current
-    let right = 100
-    if (el) {
-      const r = el.getBoundingClientRect()
-      right = Math.max(12, window.innerWidth - r.right + r.width / 2 - 100)
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-    setArrowRight(right)
-    setShowArrow(true)
-    window.setTimeout(() => setShowArrow(false), 3200)
-  }
 
   const dark = skin === 'dark'
   const chromeBorder = dark ? '#2E2A22' : '#E6E0D4'
@@ -358,9 +390,9 @@ export default function App() {
             </a>
           </nav>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{ position: 'relative' }}>
             <a
               href={REPO_URL}
-              ref={navStarRef}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -380,6 +412,43 @@ export default function App() {
               </svg>
               <span style={{ fontWeight: 600 }}>{starsLabel}</span>
             </a>
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 14px)',
+                right: 2,
+                pointerEvents: 'none',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 4,
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "'Caveat', cursive",
+                  fontSize: 21,
+                  fontWeight: 600,
+                  color: '#C9713B',
+                  whiteSpace: 'nowrap',
+                  transform: 'rotate(-4deg)',
+                  marginTop: 16,
+                }}
+              >
+                Leave a star!
+              </span>
+              <svg width="34" height="34" viewBox="0 0 34 34" fill="none" style={{ marginTop: 0 }}>
+                <path
+                  d="M4 30 C16 28, 26 20, 28 6"
+                  stroke="#C9713B"
+                  strokeWidth="2.2"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <path d="M28 6 L21.5 9.5 M28 6 L29.5 13" stroke="#C9713B" strokeWidth="2.2" strokeLinecap="round" />
+              </svg>
+            </div>
+            </div>
             <a
               href="#install"
               style={{
@@ -545,9 +614,20 @@ export default function App() {
             style={{
               background: dark ? '#1A1712' : '#FCFAF5',
               border: `1px solid ${chromeBorder}`,
-              borderRadius: 20,
               overflow: 'hidden',
-              boxShadow: '0 30px 70px -30px rgba(28,26,23,0.28)',
+              ...(expanded
+                ? {
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 100,
+                    borderRadius: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }
+                : {
+                    borderRadius: 20,
+                    boxShadow: '0 30px 70px -30px rgba(28,26,23,0.28)',
+                  }),
             }}
           >
             <div
@@ -593,10 +673,35 @@ export default function App() {
                 >
                   {dark ? '☾ Dark' : '☀ Light'}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setExpanded(!expanded)}
+                  aria-label={expanded ? 'Exit full screen' : 'Expand playground to full screen'}
+                  title={expanded ? 'Exit full screen (Esc)' : 'Full screen'}
+                  style={{
+                    border: `1px solid ${chromeBorder}`,
+                    background: dark ? '#231F19' : '#FFFFFF',
+                    color: dark ? '#C9C2B4' : '#544F47',
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    padding: '5px 11px',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {expanded ? '✕ Exit' : '⛶ Expand'}
+                </button>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.9fr) minmax(0, 1.15fr)', height: 480 }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(0, 0.9fr) minmax(0, 1.15fr)',
+                ...(expanded ? { flex: 1, minHeight: 0 } : { height: 480 }),
+              }}
+            >
               <div
                 style={{
                   display: 'flex',
@@ -641,7 +746,7 @@ export default function App() {
                   }}
                 >
                   <span style={{ fontSize: 12.5, fontWeight: 600, color: paneText }}>Preview</span>
-                  <span style={chromeLabel}>click to select — the code highlights too · double-click to edit · alt-drag to connect</span>
+                  <span style={chromeLabel}>click to select · double-click to edit · drag empty space to pan · pinch to zoom</span>
                 </div>
                 <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
                   <MermaidCanvas
@@ -649,6 +754,7 @@ export default function App() {
                     mermaid={mermaid}
                     mermaidConfig={themeConfig(theme)}
                     accentColor="#0E7C6B"
+                    panZoom
                     className="site-demo-canvas"
                     style={{
                       backgroundColor: previewBg,
@@ -837,72 +943,6 @@ export default function App() {
               <span style={cmt}># or per-instance: accentColor · mermaidConfig={'{ theme: "dark" }'}</span>
             </CodeCard>
           </div>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginTop: 26 }}>
-            <button
-              type="button"
-              onClick={pointToNavStar}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                background: '#FCFAF5',
-                border: '1px solid #E6E0D4',
-                color: '#1C1A17',
-                padding: '12px 20px',
-                borderRadius: 11,
-                fontWeight: 600,
-                fontSize: 15,
-                fontFamily: "'Inter', sans-serif",
-                cursor: 'pointer',
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="#C9A227">
-                <path d="M8 .8l2.2 4.5 5 .7-3.6 3.5.9 4.9L8 12.1l-4.5 2.3.9-4.9L.8 6l5-.7L8 .8z" />
-              </svg>
-              Star on GitHub
-            </button>
-          </div>
-
-          {showArrow && (
-            <div
-              style={{
-                position: 'fixed',
-                top: 58,
-                right: arrowRight,
-                zIndex: 60,
-                pointerEvents: 'none',
-                animation: 'okfade .25s ease',
-              }}
-            >
-              <svg width="120" height="110" viewBox="0 0 120 110" fill="none">
-                <path
-                  d="M20 105 C15 60, 45 30, 88 14"
-                  stroke="#0E7C6B"
-                  strokeWidth="3.5"
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeDasharray="6 7"
-                />
-                <path d="M88 14 L70 14 M88 14 L82 30" stroke="#0E7C6B" strokeWidth="3.5" strokeLinecap="round" />
-              </svg>
-              <div
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: '#0E7C6B',
-                  transform: 'rotate(-6deg)',
-                  margin: '-6px 0 0 -8px',
-                  background: '#EAF3F0',
-                  borderRadius: 8,
-                  padding: '5px 10px',
-                  display: 'inline-block',
-                }}
-              >
-                right up here ☝
-              </div>
-            </div>
-          )}
         </section>
 
         <footer style={{ borderTop: '1px solid #E6E0D4', marginTop: 40 }}>

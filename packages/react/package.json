@@ -41,7 +41,7 @@
     "visual-editing"
   ],
   "sideEffects": false,
-  "license": "GPL-3.0-or-later",
+  "license": "MIT",
   "files": [
     "dist",
     "src"

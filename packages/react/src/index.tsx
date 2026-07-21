@@ -32,6 +32,8 @@ export interface MermaidWysiwygProps {
   mermaidConfig?: Record<string, unknown>
   accentColor?: string
   readOnly?: boolean
+  /** fit-to-canvas + drag-pan + pinch/ctrl-wheel zoom with corner controls */
+  panZoom?: boolean
   tool?: Tool
   hooks?: ViewHooks
   onSelectionChange?: (entityIds: string[]) => void
@@ -50,7 +52,7 @@ export interface MermaidWysiwygProps {
  * ```
  */
 export function MermaidWysiwyg(props: MermaidWysiwygProps) {
-  const { code, onCodeChange, mermaid, mermaidConfig, accentColor, readOnly, tool, hooks, onSelectionChange, onReady, className, style } = props
+  const { code, onCodeChange, mermaid, mermaidConfig, accentColor, readOnly, panZoom, tool, hooks, onSelectionChange, onReady, className, style } = props
   const hostRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<MermaidWysiwygEditor | null>(null)
   const viewRef = useRef<MermaidCanvasView | null>(null)
@@ -69,6 +71,7 @@ export function MermaidWysiwyg(props: MermaidWysiwygProps) {
       mermaidConfig,
       accentColor,
       readOnly,
+      panZoom,
       hooks,
     })
     editorRef.current = editor
@@ -127,6 +130,8 @@ export interface MermaidCanvasProps {
   mermaidConfig?: Record<string, unknown>
   accentColor?: string
   readOnly?: boolean
+  /** fit-to-canvas + drag-pan + pinch/ctrl-wheel zoom with corner controls */
+  panZoom?: boolean
   hooks?: ViewHooks
   onReady?: (view: MermaidCanvasView) => void
   className?: string
@@ -135,7 +140,7 @@ export interface MermaidCanvasProps {
 
 /** Canvas-only binding for an editor instance you manage yourself. */
 export function MermaidCanvas(props: MermaidCanvasProps) {
-  const { editor, mermaid, mermaidConfig, accentColor, readOnly, hooks, onReady, className, style } = props
+  const { editor, mermaid, mermaidConfig, accentColor, readOnly, panZoom, hooks, onReady, className, style } = props
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<MermaidCanvasView | null>(null)
 
@@ -148,6 +153,7 @@ export function MermaidCanvas(props: MermaidCanvasProps) {
       mermaidConfig,
       accentColor,
       readOnly,
+      panZoom,
       hooks,
     })
     onReady?.(view)
