@@ -97,7 +97,14 @@ export class MermaidCodeMirror {
       },
       setHighlights: (spans) => this.view.dispatch({ effects: setHighlights.of(spans) }),
       revealPosition: (offset) => {
-        this.view.dispatch({ effects: EditorView.scrollIntoView(offset, { y: 'center' }) })
+        // Scroll only the editor's own scroller. CodeMirror's scrollIntoView
+        // effect also scrolls every scrollable ancestor — including the page —
+        // so a canvas click revealing a span would yank the host app's
+        // viewport around.
+        const block = this.view.lineBlockAt(offset)
+        const scroller = this.view.scrollDOM
+        const top = block.top - (scroller.clientHeight - block.height) / 2
+        scroller.scrollTop = Math.max(0, top)
       },
     })
   }
