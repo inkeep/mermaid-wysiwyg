@@ -8,8 +8,8 @@
     "test": "pnpm -r run test",
     "typecheck": "pnpm -r typecheck",
     "dev:js": "pnpm --filter js-playground dev",
-    "dev:site": "pnpm --filter site dev",
-    "build:site": "pnpm --filter site build",
+    "dev:mermaidraw": "pnpm --filter mermaidraw dev",
+    "build:mermaidraw": "pnpm --filter mermaidraw build",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm build && changeset publish"
